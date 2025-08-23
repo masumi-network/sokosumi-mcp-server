@@ -6,14 +6,14 @@ A minimal MCP (Model Context Protocol) server that provides access to the Sokosu
 
 - Streamable HTTP transport only
 - Support for both preprod and mainnet environments (as separate tool sets)
-- API key configuration via tool or environment variable
+- API key authentication via environment variable
 - Clean, minimal implementation
+- Simple deployment model
 
 ## Available Tools
 
-### Configuration Tools
-- `configure_api_key(api_key)` - Configure API key for Sokosumi API access
-- `get_configuration()` - Get current server configuration
+### Server Info
+- `get_server_info()` - Get server configuration and available environments
 
 ### Preprod Tools (prefix: `preprod_`)
 - `preprod_get_user_info()` - Get current user information
@@ -38,6 +38,9 @@ A minimal MCP (Model Context Protocol) server that provides access to the Sokosu
 # Install dependencies
 uv add "mcp[cli]" httpx
 
+# Set API key
+export SOKOSUMI_API_KEY=your_api_key_here
+
 # Run the server
 uv run server.py
 ```
@@ -56,37 +59,62 @@ source venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 
+# Set API key
+export SOKOSUMI_API_KEY=your_api_key_here
+
 # Run the server
 python server.py
 ```
 
 The server will start on `http://localhost:8000/mcp`
 
-## API Key Configuration
+## Authentication
 
-You have two options for configuring the API key:
+The server uses environment variable authentication for simplicity. Each server instance uses one API key.
 
-### Option 1: Use the configure_api_key tool (Recommended)
-After connecting to the server, call the `configure_api_key` tool with your API key:
-```python
-await session.call_tool("configure_api_key", {"api_key": "your_api_key_here"})
-```
+### Single-User Setup
 
-### Option 2: Environment Variable
-Set the `SOKOSUMI_API_KEY` environment variable before starting the server:
+Set the API key as an environment variable:
 ```bash
 export SOKOSUMI_API_KEY=your_api_key_here
 python server.py
 ```
 
-## Base URLs
+### Multi-User Setup
 
-- Preprod: `https://preprod.sokosumi.com`
-- Mainnet: `https://app.sokosumi.com`
+For multiple users with different API keys, run separate server instances on different ports:
 
-## Client Connection
+**User 1 (port 8000):**
+```bash
+SOKOSUMI_API_KEY=user1_api_key python server.py
+```
 
-Connect to the server using the MCP streamable HTTP transport:
+**User 2 (port 8001):**
+```bash
+SOKOSUMI_API_KEY=user2_api_key python -c "
+from server import mcp
+mcp.run(transport='streamable-http', port=8001)
+"
+```
+
+## Client Configuration
+
+### MCP Client Configuration
+
+Configure your MCP client to connect to the server:
+
+```json
+{
+  "mcpServers": {
+    "sokosumi": {
+      "type": "http",
+      "url": "http://localhost:8000/mcp"
+    }
+  }
+}
+```
+
+### Python Client Example
 
 ```python
 from mcp import ClientSession
@@ -95,9 +123,6 @@ from mcp.client.streamable_http import streamablehttp_client
 async with streamablehttp_client("http://localhost:8000/mcp") as (read, write, _):
     async with ClientSession(read, write) as session:
         await session.initialize()
-        
-        # Configure API key
-        await session.call_tool("configure_api_key", {"api_key": "your_api_key_here"})
         
         # List available tools
         tools = await session.list_tools()
@@ -109,9 +134,44 @@ async with streamablehttp_client("http://localhost:8000/mcp") as (read, write, _
         result = await session.call_tool("mainnet_list_agents")
 ```
 
+## Deployment Options
+
+### Local Development
+```bash
+export SOKOSUMI_API_KEY=your_api_key
+python server.py
+```
+
+### Docker Deployment
+```dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt server.py ./
+RUN pip install -r requirements.txt
+ENV SOKOSUMI_API_KEY=${SOKOSUMI_API_KEY}
+CMD ["python", "server.py"]
+```
+
+### Cloud Deployment
+
+Deploy as a containerized service with the API key set as an environment variable in your cloud platform's secret management system.
+
+## Base URLs
+
+- Preprod: `https://preprod.sokosumi.com`
+- Mainnet: `https://app.sokosumi.com`
+
 ## Testing
 
 Test the server with the MCP Inspector:
 ```bash
+export SOKOSUMI_API_KEY=your_api_key
 uv run mcp dev server.py
 ```
+
+## Security Notes
+
+- Never commit API keys to version control
+- Use environment variables or secret management systems
+- For production, deploy behind HTTPS
+- Each server instance handles one API key (one user)

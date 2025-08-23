@@ -14,48 +14,24 @@ BASE_URLS = {
 # Initialize MCP server
 mcp = FastMCP(
     name="Sokosumi API",
-    instructions="Access to Sokosumi API. Tools are prefixed with 'preprod_' or 'mainnet_'. Configure API key using 'configure_api_key' tool first."
+    instructions="Access to Sokosumi API. Tools are prefixed with 'preprod_' or 'mainnet_'. Requires SOKOSUMI_API_KEY environment variable."
 )
 
-# Store API key (can be set via environment or configure tool)
-API_KEY: str = os.getenv("SOKOSUMI_API_KEY", "")
+# Get API key from environment
+def get_api_key() -> str:
+    """Get API key from environment variable"""
+    api_key = os.getenv("SOKOSUMI_API_KEY", "")
+    if not api_key:
+        raise ValueError("SOKOSUMI_API_KEY environment variable is required")
+    return api_key
 
-# HTTP client factory
-def get_client(api_key: Optional[str] = None) -> httpx.Client:
+
+def get_client() -> httpx.Client:
     """Create HTTP client with API key header"""
-    key = api_key or API_KEY
-    if not key:
-        raise ValueError("API key not configured. Use 'configure_api_key' tool or set SOKOSUMI_API_KEY environment variable.")
     return httpx.Client(
-        headers={"x-api-key": key},
+        headers={"x-api-key": get_api_key()},
         timeout=30.0
     )
-
-
-# --- Configuration Tool ---
-
-@mcp.tool()
-def configure_api_key(api_key: str) -> Dict[str, str]:
-    """Configure API key for Sokosumi API access
-    
-    Args:
-        api_key: Your Sokosumi API key
-    """
-    global API_KEY
-    API_KEY = api_key
-    return {"status": "configured", "message": "API key set successfully"}
-
-
-@mcp.tool()
-def get_configuration() -> Dict[str, Any]:
-    """Get current server configuration"""
-    return {
-        "api_key_configured": bool(API_KEY),
-        "environments": {
-            "preprod": BASE_URLS["preprod"],
-            "mainnet": BASE_URLS["mainnet"]
-        }
-    }
 
 
 # --- PREPROD Tools ---
@@ -250,13 +226,32 @@ def mainnet_create_agent_job(
         return response.json()
 
 
+# --- Server Info Tool ---
+
+@mcp.tool()
+def get_server_info() -> Dict[str, Any]:
+    """Get information about the server configuration"""
+    return {
+        "environments": {
+            "preprod": BASE_URLS["preprod"],
+            "mainnet": BASE_URLS["mainnet"]
+        },
+        "api_key_configured": bool(os.getenv("SOKOSUMI_API_KEY"))
+    }
+
+
 # Run server
 if __name__ == "__main__":
+    api_key_configured = bool(os.getenv("SOKOSUMI_API_KEY"))
+    
     print("Starting Sokosumi MCP Server")
     print("Environments: preprod and mainnet")
-    print(f"API key configured: {bool(API_KEY)}")
-    if not API_KEY:
-        print("Note: Configure API key using 'configure_api_key' tool or SOKOSUMI_API_KEY env var")
+    print(f"API key configured: {api_key_configured}")
     
-    # Run with streamable HTTP transport only
+    if not api_key_configured:
+        print("\nWARNING: SOKOSUMI_API_KEY environment variable not set!")
+        print("Set it before connecting clients:")
+        print("  export SOKOSUMI_API_KEY=your_api_key_here")
+    
+    # Run with streamable HTTP transport
     mcp.run(transport="streamable-http", port=8000)
