@@ -5,36 +5,42 @@ A minimal MCP (Model Context Protocol) server that provides access to the Sokosu
 ## Features
 
 - Streamable HTTP transport only
-- Support for both preprod and mainnet environments
-- API key authentication
+- Support for both preprod and mainnet environments (as separate tool sets)
+- API key configuration via tool or environment variable
 - Clean, minimal implementation
 
 ## Available Tools
 
-- `get_user_info()` - Get current user information
-- `list_agents()` - List all available agents
-- `get_agent_jobs(agent_id)` - Get jobs for a specific agent
-- `list_jobs(status?, agent_id?)` - List jobs with optional filters
-- `get_agent_input_schema(agent_id)` - Get input schema for an agent
-- `create_agent_job(agent_id, input_data, max_accepted_credits)` - Create a new agent job
-- `get_server_info()` - Get server configuration info
+### Configuration Tools
+- `configure_api_key(api_key)` - Configure API key for Sokosumi API access
+- `get_configuration()` - Get current server configuration
+
+### Preprod Tools (prefix: `preprod_`)
+- `preprod_get_user_info()` - Get current user information
+- `preprod_list_agents()` - List all available agents
+- `preprod_get_agent_jobs(agent_id)` - Get jobs for a specific agent
+- `preprod_list_jobs(status?, agent_id?)` - List jobs with optional filters
+- `preprod_get_agent_input_schema(agent_id)` - Get input schema for an agent
+- `preprod_create_agent_job(agent_id, input_data, max_accepted_credits)` - Create a new agent job
+
+### Mainnet Tools (prefix: `mainnet_`)
+- `mainnet_get_user_info()` - Get current user information
+- `mainnet_list_agents()` - List all available agents
+- `mainnet_get_agent_jobs(agent_id)` - Get jobs for a specific agent
+- `mainnet_list_jobs(status?, agent_id?)` - List jobs with optional filters
+- `mainnet_get_agent_input_schema(agent_id)` - Get input schema for an agent
+- `mainnet_create_agent_job(agent_id, input_data, max_accepted_credits)` - Create a new agent job
 
 ## Setup
 
 1. Install dependencies:
 ```bash
-uv add "mcp[cli]" httpx python-dotenv
+uv add "mcp[cli]" httpx
 # or
-pip install "mcp[cli]" httpx python-dotenv
+pip install "mcp[cli]" httpx
 ```
 
-2. Configure environment:
-```bash
-cp .env.example .env
-# Edit .env and add your API key and environment
-```
-
-3. Run the server:
+2. Run the server:
 ```bash
 python server.py
 # or
@@ -43,10 +49,22 @@ uv run server.py
 
 The server will start on `http://localhost:8000/mcp`
 
-## Environment Variables
+## API Key Configuration
 
-- `SOKOSUMI_API_KEY` - Your Sokosumi API key (required)
-- `SOKOSUMI_ENV` - Environment: 'preprod' or 'mainnet' (default: 'preprod')
+You have two options for configuring the API key:
+
+### Option 1: Use the configure_api_key tool (Recommended)
+After connecting to the server, call the `configure_api_key` tool with your API key:
+```python
+await session.call_tool("configure_api_key", {"api_key": "your_api_key_here"})
+```
+
+### Option 2: Environment Variable
+Set the `SOKOSUMI_API_KEY` environment variable before starting the server:
+```bash
+export SOKOSUMI_API_KEY=your_api_key_here
+python server.py
+```
 
 ## Base URLs
 
@@ -65,11 +83,17 @@ async with streamablehttp_client("http://localhost:8000/mcp") as (read, write, _
     async with ClientSession(read, write) as session:
         await session.initialize()
         
+        # Configure API key
+        await session.call_tool("configure_api_key", {"api_key": "your_api_key_here"})
+        
         # List available tools
         tools = await session.list_tools()
         
-        # Call a tool
-        result = await session.call_tool("get_user_info")
+        # Call preprod tools
+        result = await session.call_tool("preprod_get_user_info")
+        
+        # Call mainnet tools
+        result = await session.call_tool("mainnet_list_agents")
 ```
 
 ## Testing
