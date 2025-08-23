@@ -1,0 +1,14 @@
+[project]
+name = "sokosumi-mcp-server"
+version = "0.1.0"
+description = "MCP server wrapper for Sokosumi API"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp[cli]",
+    "httpx",
+    "python-dotenv",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
