@@ -30,8 +30,8 @@ mcp-server/
 │   └── utils/            # Utility functions
 ├── tests/                # Test files
 ├── pyproject.toml       # Project configuration
-├── README.md            # Documentation
-└── .env.example         # Environment variables template
+├── requirements.txt     # Python dependencies
+└── README.md            # Documentation
 ```
 
 ### Dependencies

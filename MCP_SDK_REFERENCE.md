@@ -171,8 +171,8 @@ mcp-server/
 │   └── utils/            # Utilities
 ├── tests/
 ├── pyproject.toml
-├── README.md
-└── .env.example
+├── requirements.txt
+└── README.md
 ```
 
 ## Testing Commands
