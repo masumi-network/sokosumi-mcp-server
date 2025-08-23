@@ -33,18 +33,31 @@ A minimal MCP (Model Context Protocol) server that provides access to the Sokosu
 
 ## Setup
 
-1. Install dependencies:
+### Option 1: Using uv (Recommended)
 ```bash
+# Install dependencies
 uv add "mcp[cli]" httpx
-# or
-pip install "mcp[cli]" httpx
+
+# Run the server
+uv run server.py
 ```
 
-2. Run the server:
+### Option 2: Using venv and pip
 ```bash
+# Create virtual environment
+python -m venv venv
+
+# Activate virtual environment
+# On macOS/Linux:
+source venv/bin/activate
+# On Windows:
+# venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the server
 python server.py
-# or
-uv run server.py
 ```
 
 The server will start on `http://localhost:8000/mcp`
