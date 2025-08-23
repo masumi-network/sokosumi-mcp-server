@@ -5,10 +5,10 @@ A minimal MCP (Model Context Protocol) server that provides access to the Sokosu
 ## Features
 
 - Streamable HTTP transport only
+- Stateless mode for multi-user support
 - Support for both preprod and mainnet environments (as separate tool sets)
-- API key authentication via environment variable
+- API key authentication via Authorization header
 - Clean, minimal implementation
-- Simple deployment model
 
 ## Available Tools
 
@@ -38,9 +38,6 @@ A minimal MCP (Model Context Protocol) server that provides access to the Sokosu
 # Install dependencies
 uv add "mcp[cli]" httpx
 
-# Set API key
-export SOKOSUMI_API_KEY=your_api_key_here
-
 # Run the server
 uv run server.py
 ```
@@ -59,9 +56,6 @@ source venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Set API key
-export SOKOSUMI_API_KEY=your_api_key_here
-
 # Run the server
 python server.py
 ```
@@ -70,45 +64,21 @@ The server will start on `http://localhost:8000/mcp`
 
 ## Authentication
 
-The server uses environment variable authentication for simplicity. Each server instance uses one API key.
-
-### Single-User Setup
-
-Set the API key as an environment variable:
-```bash
-export SOKOSUMI_API_KEY=your_api_key_here
-python server.py
-```
-
-### Multi-User Setup
-
-For multiple users with different API keys, run separate server instances on different ports:
-
-**User 1 (port 8000):**
-```bash
-SOKOSUMI_API_KEY=user1_api_key python server.py
-```
-
-**User 2 (port 8001):**
-```bash
-SOKOSUMI_API_KEY=user2_api_key python -c "
-from server import mcp
-mcp.run(transport='streamable-http', port=8001)
-"
-```
-
-## Client Configuration
+The server runs in stateless mode and extracts the API key from the Authorization header of each request. Each user connects with their own API key.
 
 ### MCP Client Configuration
 
-Configure your MCP client to connect to the server:
+Configure your MCP client with the Authorization header:
 
 ```json
 {
   "mcpServers": {
     "sokosumi": {
       "type": "http",
-      "url": "http://localhost:8000/mcp"
+      "url": "http://localhost:8000/mcp",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_KEY_HERE"
+      }
     }
   }
 }
@@ -120,7 +90,15 @@ Configure your MCP client to connect to the server:
 from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
 
-async with streamablehttp_client("http://localhost:8000/mcp") as (read, write, _):
+# Configure headers with your API key
+headers = {
+    "Authorization": "Bearer YOUR_API_KEY_HERE"
+}
+
+async with streamablehttp_client(
+    "http://localhost:8000/mcp",
+    headers=headers
+) as (read, write, _):
     async with ClientSession(read, write) as session:
         await session.initialize()
         
@@ -134,11 +112,10 @@ async with streamablehttp_client("http://localhost:8000/mcp") as (read, write, _
         result = await session.call_tool("mainnet_list_agents")
 ```
 
-## Deployment Options
+## Deployment
 
 ### Local Development
 ```bash
-export SOKOSUMI_API_KEY=your_api_key
 python server.py
 ```
 
@@ -148,30 +125,38 @@ FROM python:3.11-slim
 WORKDIR /app
 COPY requirements.txt server.py ./
 RUN pip install -r requirements.txt
-ENV SOKOSUMI_API_KEY=${SOKOSUMI_API_KEY}
+EXPOSE 8000
 CMD ["python", "server.py"]
 ```
 
 ### Cloud Deployment
 
-Deploy as a containerized service with the API key set as an environment variable in your cloud platform's secret management system.
+Deploy as a containerized service. The server is stateless and can scale horizontally.
 
 ## Base URLs
 
 - Preprod: `https://preprod.sokosumi.com`
 - Mainnet: `https://app.sokosumi.com`
 
+## How It Works
+
+1. Start the server once - it runs stateless and supports multiple users
+2. Each user connects with their own API key in the Authorization header
+3. The server extracts the API key from each request and uses it for Sokosumi API calls
+4. Multiple users can connect simultaneously, each with their own API key
+
 ## Testing
 
 Test the server with the MCP Inspector:
 ```bash
-export SOKOSUMI_API_KEY=your_api_key
 uv run mcp dev server.py
 ```
+
+Note: When testing with MCP Inspector, you'll need to configure the Authorization header with your API key.
 
 ## Security Notes
 
 - Never commit API keys to version control
-- Use environment variables or secret management systems
+- Each user's API key is isolated to their own requests
+- The server doesn't store any API keys
 - For production, deploy behind HTTPS
-- Each server instance handles one API key (one user)
