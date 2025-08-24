@@ -10,7 +10,15 @@ A minimal MCP (Model Context Protocol) server that provides access to the Sokosu
 - API key authentication via Authorization header
 - Clean, minimal implementation
 
-## Available Tools
+## Available Features
+
+### Prompts (Guided Workflows)
+- `select_agent_for_task(task_description, environment)` - Help select the right agent for a task
+- `create_job_wizard(agent_id, environment)` - Guide through job creation process
+- `monitor_jobs(status_filter?, environment)` - Set up job monitoring workflow
+- `troubleshoot_job(job_id, environment)` - Debug failed or stuck jobs
+- `estimate_job_cost(agent_id, job_count, environment)` - Estimate credits needed
+- `quick_status_check(environment)` - Quick overview of jobs and agents
 
 ### Server Info
 - `get_server_info()` - Get server configuration and available environments

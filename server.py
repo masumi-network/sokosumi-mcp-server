@@ -55,6 +55,104 @@ def get_client(api_key: str) -> httpx.Client:
     )
 
 
+# --- PROMPTS ---
+
+@mcp.prompt()
+def select_agent_for_task(task_description: str, environment: str = "preprod") -> str:
+    """Help user select the right agent for their task"""
+    return f"""I'll help you select the right Sokosumi agent for your task.
+
+Task: {task_description}
+Environment: {environment}
+
+Let me:
+1. List available agents using {environment}_list_agents
+2. Analyze which agents match your requirements
+3. Show you the input schema for relevant agents
+4. Recommend the best agent for your specific task
+
+Starting by fetching available agents..."""
+
+
+@mcp.prompt()
+def create_job_wizard(agent_id: str, environment: str = "preprod") -> str:
+    """Guide user through job creation process"""
+    return f"""Let's create a job for agent {agent_id} on {environment}.
+
+I'll guide you through:
+1. Fetching the required input schema
+2. Explaining each required field
+3. Validating your input data format
+4. Setting an appropriate credit limit
+5. Submitting the job
+
+First, let me get the input schema for this agent..."""
+
+
+@mcp.prompt()
+def monitor_jobs(status_filter: Optional[str] = None, environment: str = "preprod") -> str:
+    """Set up job monitoring workflow"""
+    status_info = f"Status filter: {status_filter}" if status_filter else "Showing all statuses"
+    return f"""I'll help you monitor your Sokosumi jobs on {environment}.
+
+{status_info}
+
+I can:
+1. List all current jobs and their statuses
+2. Show detailed information for specific jobs
+3. Track credit consumption across jobs
+4. Filter by status (pending, running, completed, failed)
+5. Check job results and outputs
+
+Let me fetch your current jobs..."""
+
+
+@mcp.prompt()
+def troubleshoot_job(job_id: str, environment: str = "preprod") -> str:
+    """Help debug a failed or stuck job"""
+    return f"""Let's troubleshoot job {job_id} on {environment}.
+
+I'll investigate:
+1. Current job status and any error messages
+2. Input data validation issues
+3. Credit limit problems
+4. Agent availability and compatibility
+5. Historical success rate for similar jobs
+
+Starting diagnostics now..."""
+
+
+@mcp.prompt()
+def estimate_job_cost(agent_id: str, job_count: int = 1, environment: str = "preprod") -> str:
+    """Help estimate credits needed for jobs"""
+    return f"""I'll help estimate the credit cost for running {job_count} job(s) on agent {agent_id}.
+
+To provide an accurate estimate, I'll:
+1. Check the agent's typical credit consumption
+2. Review the input schema complexity
+3. Consider the number of jobs you plan to run
+4. Provide a recommended credit buffer
+
+Environment: {environment}
+
+Let me fetch the agent details and analyze credit requirements..."""
+
+
+@mcp.prompt()
+def quick_status_check(environment: str = "preprod") -> str:
+    """Quick overview of all jobs and agents"""
+    return f"""I'll give you a quick overview of your Sokosumi {environment} environment.
+
+Checking:
+1. Your user information and credit balance
+2. Available agents and their status
+3. Recent jobs (last 10)
+4. Any failed or stuck jobs
+5. Credit consumption trends
+
+Gathering information now..."""
+
+
 # --- PREPROD Tools ---
 
 @mcp.tool()
